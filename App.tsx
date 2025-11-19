@@ -47,10 +47,10 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="z-10 text-center mb-10">
         <h1 className="text-4xl md:text-6xl font-bold font-space bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-indigo-200 tracking-tight drop-shadow-lg">
-          Cosmic Chronos
+          Time Poet
         </h1>
         <p className="text-slate-400 mt-2 tracking-widest uppercase text-sm">
-          Integrated Temporal System
+          Gemini 時間詩人
         </p>
       </header>
 
