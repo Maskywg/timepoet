@@ -7,10 +7,31 @@ interface AnalogClockProps {
 }
 
 const AnalogClock: React.FC<AnalogClockProps> = ({ time }) => {
-  // Calculate degrees
-  const secondDegrees = (time.seconds / 60) * 360;
-  const minuteDegrees = ((time.minutes + time.seconds / 60) / 60) * 360;
-  const hourDegrees = ((time.hours % 12 + time.minutes / 60) / 12) * 360;
+  // Use timestamp to create monotonic values for rotation
+  // This prevents the hands from spinning backwards when passing 12 o'clock (wrap-around glitch)
+  const timestamp = time.date.getTime();
+  const offsetMinutes = time.date.getTimezoneOffset(); // e.g., -480 for UTC+8 (Taipei)
+  
+  // Calculate strictly increasing degrees based on absolute time
+  // Seconds: 360deg per 60s = 6deg per second
+  const secondDegrees = (timestamp / 1000) * 6;
+  
+  // Minutes: 360deg per 60m. 
+  // We need local time minutes. Local Minutes = (Timestamp / 60s) - offsetMinutes
+  const minuteDegrees = ((timestamp / 1000 / 60) - offsetMinutes) * 6;
+  
+  // Hours: 360deg per 12h (720m).
+  // Local Hours = (Timestamp / 3600s) - (offsetMinutes / 60)
+  const hourDegrees = ((timestamp / 1000 / 3600) - (offsetMinutes / 60)) * 30;
+
+  // Physics-based spring transition for fluid, mechanical-feel movement
+  const handTransition = {
+    type: "spring" as const,
+    stiffness: 75,
+    damping: 15,
+    mass: 0.5,
+    restDelta: 0.001
+  };
 
   return (
     <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center bg-slate-800/50 rounded-full shadow-[0_0_40px_rgba(124,58,237,0.2)] backdrop-blur-xl border border-white/10 [--marker-dist:110px] md:[--marker-dist:140px] [--num-dist:88px] md:[--num-dist:112px]">
@@ -46,36 +67,36 @@ const AnalogClock: React.FC<AnalogClockProps> = ({ time }) => {
         />
       ))}
 
-      {/* Center Point */}
-      <div className="absolute w-3 h-3 bg-purple-400 rounded-full z-20 shadow-[0_0_10px_rgba(168,85,247,0.8)]" />
+      {/* Center Point with Glow */}
+      <div className="absolute w-3 h-3 bg-purple-400 rounded-full z-20 shadow-[0_0_15px_rgba(168,85,247,1)] ring-2 ring-purple-900/50" />
 
-      {/* Hour Hand */}
+      {/* Hour Hand - Gradient with purple glow */}
       <motion.div
-        className="absolute w-1.5 h-20 bg-gradient-to-t from-purple-500 to-pink-500 rounded-full origin-bottom z-10"
+        className="absolute w-1.5 h-20 bg-gradient-to-t from-purple-500 to-pink-500 rounded-full origin-bottom z-10 shadow-[0_0_15px_rgba(236,72,153,0.6)]"
         style={{ bottom: '50%' }}
         animate={{ rotate: hourDegrees }}
-        transition={{ ease: "linear", duration: 0 }}
+        transition={handTransition}
       />
 
-      {/* Minute Hand */}
+      {/* Minute Hand - White with soft glow */}
       <motion.div
-        className="absolute w-1 h-28 bg-slate-200 rounded-full origin-bottom z-10"
+        className="absolute w-1 h-28 bg-slate-200 rounded-full origin-bottom z-10 shadow-[0_0_15px_rgba(226,232,240,0.5)]"
         style={{ bottom: '50%' }}
         animate={{ rotate: minuteDegrees }}
-        transition={{ ease: "linear", duration: 0 }}
+        transition={handTransition}
       />
 
-      {/* Second Hand */}
+      {/* Second Hand - Red with distinct glow */}
       <motion.div
-        className="absolute w-0.5 h-32 bg-red-400 rounded-full origin-bottom z-10"
+        className="absolute w-0.5 h-32 bg-red-400 rounded-full origin-bottom z-10 shadow-[0_0_15px_rgba(248,113,113,0.8)]"
         style={{ bottom: '50%' }}
         animate={{ rotate: secondDegrees }}
-        transition={{ ease: "linear", duration: 0 }}
+        transition={handTransition}
       />
       
       {/* Digital Time Overlay */}
       <div className="absolute -bottom-16 text-center">
-        <h2 className="text-4xl font-space font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 tracking-widest">
+        <h2 className="text-4xl font-space font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300 tracking-widest drop-shadow-lg">
           {time.hours.toString().padStart(2, '0')}:{time.minutes.toString().padStart(2, '0')}
         </h2>
         <p className="text-sm text-slate-400 font-light tracking-widest uppercase">
